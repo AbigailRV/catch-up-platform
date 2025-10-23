@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace CatchUpPlatform.API.News.Interfaces.REST.Resources;
 
 /// <summary>
@@ -5,4 +7,6 @@ namespace CatchUpPlatform.API.News.Interfaces.REST.Resources;
 /// </summary>
 /// <param name="NewsApiKey">The News API Key</param>
 /// <param name="SourceId">The Source ID</param>
-public record CreateFavoriteSourceResource(string NewsApiKey, string SourceId);
+public record CreateFavoriteSourceResource(
+    [Required] string NewsApiKey, 
+    [Required] string SourceId);
