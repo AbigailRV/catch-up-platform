@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using EntityFrameworkCore.CreatedUpdatedDate.Contracts;
+using CatchUpPlatform.API.Shared.Domain.Model;
 
 namespace CatchUpPlatform.API.News.Domain.Model.Aggregates;
 
@@ -9,10 +9,10 @@ namespace CatchUpPlatform.API.News.Domain.Model.Aggregates;
 /// <remarks>
 ///     This partial class extends FavoriteSource with audit trail properties.
 ///     CreatedDate and UpdatedDate are automatically managed by the persistence layer
-///     via the IEntityWithCreatedUpdatedDate interceptor.
-///     Implements the IEntityWithCreatedUpdatedDate interface to provide these properties.
+///     via the AuditableEntityInterceptor in the Shared bounded context.
+///     Implements the IAuditableEntity interface to provide these properties.
 /// </remarks>
-public partial class FavoriteSource : IEntityWithCreatedUpdatedDate
+public partial class FavoriteSource : IAuditableEntity
 {
     /// <summary>
     ///     Gets the timestamp when this favorite source was created.

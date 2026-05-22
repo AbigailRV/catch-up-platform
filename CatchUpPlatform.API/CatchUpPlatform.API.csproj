@@ -9,8 +9,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <!-- Audit Trails related related packages -->
-        <PackageReference Include="EntityFrameworkCore.CreatedUpdatedDate" Version="8.0.0"/>
         <!-- Entity Framework Core related packages -->
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.8"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.8"/>

@@ -1,6 +1,6 @@
 using CatchUpPlatform.API.News.Domain.Model.Aggregates;
 using CatchUpPlatform.API.Shared.Infrastructure.Persistence.EFC.Configuration.Extensions;
-using EntityFrameworkCore.CreatedUpdatedDate.Extensions;
+using CatchUpPlatform.API.Shared.Infrastructure.Persistence.EFC.Interceptors;
 using Microsoft.EntityFrameworkCore;
 
 namespace CatchUpPlatform.API.Shared.Infrastructure.Persistence.EFC.Configuration;
@@ -12,8 +12,8 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
 {
     protected override void OnConfiguring(DbContextOptionsBuilder builder)
     {
-        // Add the created and updated interceptor
-        builder.AddCreatedUpdatedInterceptor();
+        // Apply audit timestamp interceptor for all IAuditableEntity implementations
+        builder.AddInterceptors(new AuditableEntityInterceptor());
         base.OnConfiguring(builder);
     }
 
