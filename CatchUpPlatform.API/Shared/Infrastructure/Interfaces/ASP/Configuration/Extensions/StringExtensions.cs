@@ -6,10 +6,7 @@ public static partial class StringExtensions
 {
     public static string ToKebabCase(this string text)
     {
-        if (string.IsNullOrEmpty(text))
-        {
-            return text;
-        }
+        if (string.IsNullOrEmpty(text)) return text;
 
         return KebabCaseRegex().Replace(text, "-$1")
             .Trim()
