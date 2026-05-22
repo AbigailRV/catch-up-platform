@@ -44,9 +44,9 @@ public class FavoriteSourcesController(
         Description = "Creates a favorite source with a given News API Key and Source ID",
         OperationId = "CreateFavoriteSource")]
     [SwaggerResponse(201, "The favorite source was created", typeof(FavoriteSourceResource))]
-    [SwaggerResponse(400, "The request payload is invalid")]
-    [SwaggerResponse(409, "The favorite source already exists")]
-    [SwaggerResponse(500, "Unexpected server error")]
+    [SwaggerResponse(400, "The request payload is invalid", typeof(string))]
+    [SwaggerResponse(409, "The favorite source already exists", typeof(string))]
+    [SwaggerResponse(500, "Unexpected server error", typeof(ProblemDetails))]
     public async Task<ActionResult> CreateFavoriteSource([FromBody] CreateFavoriteSourceResource resource,
         CancellationToken cancellationToken)
     {
@@ -142,7 +142,7 @@ public class FavoriteSourcesController(
     [SwaggerResponse(200, "List of favorite sources matching newsApiKey (may be empty)",
         typeof(IEnumerable<FavoriteSourceResource>))]
     [SwaggerResponse(200, "Single favorite source matching newsApiKey and sourceId", typeof(FavoriteSourceResource))]
-    [SwaggerResponse(400, "A required query parameter is missing or invalid")]
+    [SwaggerResponse(400, "A required query parameter is missing or invalid", typeof(string))]
     [SwaggerResponse(404, "No favorite source found for the given newsApiKey and sourceId combination")]
     public async Task<ActionResult> GetFavoriteSourceFromQuery([FromQuery] string newsApiKey,
         [FromQuery] string? sourceId = null,
