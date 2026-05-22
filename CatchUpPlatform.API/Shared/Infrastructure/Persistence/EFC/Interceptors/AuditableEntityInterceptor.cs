@@ -45,12 +45,12 @@ public sealed class AuditableEntityInterceptor : SaveChangesInterceptor
         {
             if (entry.State == EntityState.Added)
             {
-                entry.Entity.CreatedDate ??= now;
-                entry.Entity.UpdatedDate = now;
+                entry.Entity.CreatedAt ??= now;
+                entry.Entity.UpdatedAt = now;
             }
             else if (entry.State == EntityState.Modified)
             {
-                entry.Entity.UpdatedDate = now;
+                entry.Entity.UpdatedAt = now;
             }
         }
     }

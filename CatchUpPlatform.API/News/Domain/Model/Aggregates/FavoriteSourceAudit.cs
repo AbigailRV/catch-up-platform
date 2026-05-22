@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations.Schema;
 using CatchUpPlatform.API.Shared.Domain.Model;
 
 namespace CatchUpPlatform.API.News.Domain.Model.Aggregates;
@@ -8,7 +7,7 @@ namespace CatchUpPlatform.API.News.Domain.Model.Aggregates;
 /// </summary>
 /// <remarks>
 ///     This partial class extends FavoriteSource with audit trail properties.
-///     CreatedDate and UpdatedDate are automatically managed by the persistence layer
+///     CreatedAt and UpdatedAt are automatically managed by the persistence layer
 ///     via the AuditableEntityInterceptor in the Shared bounded context.
 ///     Implements the IAuditableEntity interface to provide these properties.
 /// </remarks>
@@ -18,15 +17,15 @@ public partial class FavoriteSource : IAuditableEntity
     ///     Gets the timestamp when this favorite source was created.
     /// </summary>
     /// <remarks>
-    ///     Automatically set by the persistence layer. Column name in the database: CreatedAt.
+    ///     Automatically set once by the persistence layer on first insert. Maps to column: created_at.
     /// </remarks>
-    [Column("CreatedAt")] public DateTimeOffset? CreatedDate { get; set; }
+    public DateTimeOffset? CreatedAt { get; set; }
 
     /// <summary>
     ///     Gets the timestamp when this favorite source was last updated.
     /// </summary>
     /// <remarks>
-    ///     Automatically updated by the persistence layer. Column name in the database: UpdatedAt.
+    ///     Automatically refreshed by the persistence layer on every save. Maps to column: updated_at.
     /// </remarks>
-    [Column("UpdatedAt")] public DateTimeOffset? UpdatedDate { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
 }

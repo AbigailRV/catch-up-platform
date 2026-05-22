@@ -13,11 +13,11 @@ public interface IAuditableEntity
     /// <summary>
     ///     Gets or sets the UTC timestamp when the entity was first persisted.
     /// </summary>
-    DateTimeOffset? CreatedDate { get; set; }
+    DateTimeOffset? CreatedAt { get; set; }
 
     /// <summary>
     ///     Gets or sets the UTC timestamp when the entity was last saved.
     /// </summary>
-    DateTimeOffset? UpdatedDate { get; set; }
+    DateTimeOffset? UpdatedAt { get; set; }
 }
 
