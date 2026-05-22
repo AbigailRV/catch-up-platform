@@ -6,12 +6,12 @@ Catch-Up Platform is a small ASP.NET Core service that provides an API to manage
 
 ## Features
 
-- API base route: `api/v1/favorite-sources` (kebab-case route naming convention)
+- API base route: `/api/v1/favorite-sources` (kebab-case route naming convention)
 - List favorite sources by `newsApiKey`
 - Retrieve a favorite source by `id`
 - Retrieve a favorite source by `newsApiKey` + `sourceId`
 - Create (persist) a new favorite source
-- Duplicate detection enforced at application and database level (`409 Conflict`)
+- Duplicate detection enforced at application and database level (returns `409 Conflict` for known duplicate-pair violations)
 - Validation responses with model-state payloads (`400 Bad Request`)
 - Unexpected create errors returned as `ProblemDetails` (`500 Internal Server Error`)
 - Entity Framework naming strategy for `snake_case` identifiers and plural table names
@@ -81,7 +81,7 @@ The application automatically initializes the database schema on first run via `
 
 ### 4) Open Swagger UI
 
-With the default launch profile, Swagger is available at:
+With the included launch profiles, Swagger is commonly available at:
 
 - `http://localhost:5128/swagger`
 - `https://localhost:7234/swagger`
@@ -103,7 +103,7 @@ The API returns standardized error responses:
 
 - **400 Bad Request**: Request validation failed (includes model-state details).
 - **404 Not Found**: Resource not found.
-- **409 Conflict**: Duplicate `newsApiKey` + `sourceId` pair (detected before or during persistence).
+- **409 Conflict**: Duplicate `newsApiKey` + `sourceId` pair for known duplicate-pair violations (detected before or during persistence).
 - **500 Internal Server Error**: Unexpected server error (RFC7807 `ProblemDetails` format).
 
 ## Build and verify
