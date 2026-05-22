@@ -7,9 +7,9 @@ package "News" {
 
   package "Interfaces.REST" {
     class FavoriteSourcesController {
-      +CreateFavoriteSource(CreateFavoriteSourceResource) : Task<ActionResult>
-      +GetFavoriteSourceFromQuery(string, string?) : Task<ActionResult>
-      +GetFavoriteSourceById(int) : Task<ActionResult>
+      +CreateFavoriteSource(CreateFavoriteSourceResource, CancellationToken) : Task<ActionResult>
+      +GetFavoriteSourceFromQuery(string, string?, CancellationToken) : Task<ActionResult>
+      +GetFavoriteSourceById(int, CancellationToken) : Task<ActionResult>
     }
 
     package "Resources" {
@@ -18,6 +18,7 @@ package "News" {
         +string NewsApiKey
         +string SourceId
       }
+
       class CreateFavoriteSourceResource <<resource>> {
         +string NewsApiKey
         +string SourceId
@@ -28,95 +29,137 @@ package "News" {
       class FavoriteSourceResourceFromEntityAssembler <<assembler>> {
         +ToResourceFromEntity(FavoriteSource) : FavoriteSourceResource
       }
+
       class CreateFavoriteSourceCommandFromResourceAssembler <<assembler>> {
         +ToCommandFromResource(CreateFavoriteSourceResource) : CreateFavoriteSourceCommand
+      }
+
+      class ActionResultFromCreateFavoriteSourceResultAssembler <<assembler>> {
+        +ToActionResultFromCreateFavoriteSourceResult(Result<FavoriteSource, CreateFavoriteSourceError>, ControllerBase, IStringLocalizer<SharedResource>, string) : ActionResult
       }
     }
   }
 
-  package "Domain.Model.Aggregates" {
-    class FavoriteSource <<aggregate>> {
-      +int Id
-      +string NewsApiKey
-      +string SourceId
-      +DateTimeOffset? CreatedDate
-      +DateTimeOffset? UpdatedDate
-      +FavoriteSource(CreateFavoriteSourceCommand)
+  package "Domain.Model" {
+    package "ValueObjects" {
+      class NewsApiKey <<value-object>> {
+        +string Value
+        +NewsApiKey(string)
+      }
+
+      class SourceId <<value-object>> {
+        +string Value
+        +SourceId(string)
+      }
+    }
+
+    package "Commands" {
+      class CreateFavoriteSourceCommand <<command>> {
+        +NewsApiKey NewsApiKey
+        +SourceId SourceId
+      }
+    }
+
+    package "Queries" {
+      class GetAllFavoriteSourcesByNewsApiKeyQuery <<query>> {
+        +NewsApiKey NewsApiKey
+      }
+
+      class GetFavoriteSourceByIdQuery <<query>> {
+        +int Id
+      }
+
+      class GetFavoriteSourceByNewsApiKeyAndSourceIdQuery <<query>> {
+        +NewsApiKey NewsApiKey
+        +SourceId SourceId
+      }
+    }
+
+    package "Aggregates" {
+      class FavoriteSource <<aggregate>> {
+        +int Id
+        +NewsApiKey NewsApiKey
+        +SourceId SourceId
+        +FavoriteSource(CreateFavoriteSourceCommand)
+      }
     }
   }
 
-  package "Domain.Model.Commands" {
-    class CreateFavoriteSourceCommand <<command>> {
-      +string NewsApiKey
-      +string SourceId
+  package "Application" {
+    package "Errors" {
+      enum CreateFavoriteSourceError <<error>> {
+        InvalidNewsApiKey
+        InvalidSourceId
+        DuplicateFavoriteSource
+        UnexpectedError
+      }
     }
-  }
 
-  package "Domain.Model.Queries" {
-    class GetAllFavoriteSourcesByNewsApiKeyQuery <<query>> {
-      +string NewsApiKey
-    }
-    class GetFavoriteSourceByIdQuery <<query>> {
-      +int Id
-    }
-    class GetFavoriteSourceByNewsApiKeyAndSourceIdQuery <<query>> {
-      +string NewsApiKey
-      +string SourceId
-    }
-  }
+    package "Services" {
+      interface IFavoriteSourceCommandService <<application-service>> {
+        +Handle(CreateFavoriteSourceCommand, CancellationToken) : Task<Result<FavoriteSource, CreateFavoriteSourceError>>
+      }
 
-  package "Domain.Services" {
-    interface IFavoriteSourceCommandService <<domain-service>> {
-      +Handle(CreateFavoriteSourceCommand) : Task<FavoriteSource?>
+      interface IFavoriteSourceQueryService <<application-service>> {
+        +Handle(GetAllFavoriteSourcesByNewsApiKeyQuery, CancellationToken) : Task<IEnumerable<FavoriteSource>>
+        +Handle(GetFavoriteSourceByIdQuery, CancellationToken) : Task<FavoriteSource?>
+        +Handle(GetFavoriteSourceByNewsApiKeyAndSourceIdQuery, CancellationToken) : Task<FavoriteSource?>
+      }
     }
-    interface IFavoriteSourceQueryService <<domain-service>> {
-      +Handle(GetAllFavoriteSourcesByNewsApiKeyQuery) : Task<IEnumerable<FavoriteSource>>
-      +Handle(GetFavoriteSourceByIdQuery) : Task<FavoriteSource?>
-      +Handle(GetFavoriteSourceByNewsApiKeyAndSourceIdQuery) : Task<FavoriteSource?>
-    }
-  }
 
-  package "Domain.Repositories" {
-    interface IFavoriteSourceRepository <<repository>> {
-      +FindByNewsApiKeyAsync(string) : Task<IEnumerable<FavoriteSource>>
-      +FindByNewsApiKeyAndSourceIdAsync(string, string) : Task<FavoriteSource?>
+    package "Internal.CommandServices" {
+      class FavoriteSourceCommandService <<service>> {
+        +Handle(CreateFavoriteSourceCommand, CancellationToken) : Task<Result<FavoriteSource, CreateFavoriteSourceError>>
+      }
     }
-  }
 
-  package "Application.Internal.CommandServices" {
-    class FavoriteSourceCommandService <<service>> {
-      +Handle(CreateFavoriteSourceCommand) : Task<FavoriteSource?>
-    }
-  }
-
-  package "Application.Internal.QueryServices" {
-    class FavoriteSourceQueryService <<service>> {
-      +Handle(GetAllFavoriteSourcesByNewsApiKeyQuery) : Task<IEnumerable<FavoriteSource>>
-      +Handle(GetFavoriteSourceByIdQuery) : Task<FavoriteSource?>
-      +Handle(GetFavoriteSourceByNewsApiKeyAndSourceIdQuery) : Task<FavoriteSource?>
+    package "Internal.QueryServices" {
+      class FavoriteSourceQueryService <<service>> {
+        +Handle(GetAllFavoriteSourcesByNewsApiKeyQuery, CancellationToken) : Task<IEnumerable<FavoriteSource>>
+        +Handle(GetFavoriteSourceByIdQuery, CancellationToken) : Task<FavoriteSource?>
+        +Handle(GetFavoriteSourceByNewsApiKeyAndSourceIdQuery, CancellationToken) : Task<FavoriteSource?>
+      }
     }
   }
 
   package "Infrastructure.Persistence.EFC.Repositories" {
     class FavoriteSourceRepository <<repository>> {
-      +FindByNewsApiKeyAsync(string) : Task<IEnumerable<FavoriteSource>>
-      +FindByNewsApiKeyAndSourceIdAsync(string, string) : Task<FavoriteSource?>
+      +FindByNewsApiKeyAsync(NewsApiKey, CancellationToken) : Task<IEnumerable<FavoriteSource>>
+      +FindByNewsApiKeyAndSourceIdAsync(NewsApiKey, SourceId, CancellationToken) : Task<FavoriteSource?>
     }
   }
 }
 
 package "Shared" {
 
+  package "Application.Patterns" {
+    abstract class "Result<TValue, TError>" as ResultT <<result>> {
+      +IsSuccess : bool
+      +IsFailure : bool
+      +Map<TNext>(Func<TValue, TNext>) : Result<TNext, TError>
+      +Fold<TResult>(Func<TValue, TResult>, Func<TError, TResult>) : TResult
+      +Match(Action<TValue>, Action<TError>) : void
+    }
+  }
+
+  package "Domain.Model" {
+    interface IAuditableEntity <<auditable>> {
+      +DateTimeOffset? CreatedAt
+      +DateTimeOffset? UpdatedAt
+    }
+  }
+
   package "Domain.Repositories" {
     interface IBaseRepository<TEntity> <<repository>> {
-      +AddAsync(TEntity) : Task
-      +FindByIdAsync(int) : Task<TEntity?>
+      +AddAsync(TEntity, CancellationToken) : Task
+      +FindByIdAsync(int, CancellationToken) : Task<TEntity?>
       +Update(TEntity) : void
       +Remove(TEntity) : void
-      +ListAsync() : Task<IEnumerable<TEntity>>
+      +ListAsync(CancellationToken) : Task<IEnumerable<TEntity>>
     }
+
     interface IUnitOfWork <<unit-of-work>> {
-      +CompleteAsync() : Task
+      +CompleteAsync(CancellationToken) : Task
     }
   }
 
@@ -125,42 +168,30 @@ package "Shared" {
       +OnConfiguring(DbContextOptionsBuilder) : void
       +OnModelCreating(ModelBuilder) : void
       --
-      +UX_FavoriteSource_NewsApiKey_SourceId <<unique-index>>
+      +favorite_sources
+      +unique index on (news_api_key, source_id)
+      +value converters for NewsApiKey / SourceId
     }
+  }
 
-    package "Extensions" {
-      class ModelBuilderExtensions <<extension>> {
-        +UseSnakeCaseNamingConvention(ModelBuilder) : void
-      }
-      class StringExtensions <<extension>> {
-        +ToSnakeCase(string) : string
-        +ToPlural(string) : string
-      }
+  package "Infrastructure.Persistence.EFC.Interceptors" {
+    class AuditableEntityInterceptor <<interceptor>> {
+      +SavingChanges(DbContextEventData, InterceptionResult<int>) : InterceptionResult<int>
+      +SavingChangesAsync(DbContextEventData, InterceptionResult<int>, CancellationToken) : ValueTask<InterceptionResult<int>>
     }
   }
 
   package "Infrastructure.Persistence.EFC.Repositories" {
     class BaseRepository<TEntity> <<repository>> {
-      +AddAsync(TEntity) : Task
-      +FindByIdAsync(int) : Task<TEntity?>
+      +AddAsync(TEntity, CancellationToken) : Task
+      +FindByIdAsync(int, CancellationToken) : Task<TEntity?>
       +Update(TEntity) : void
       +Remove(TEntity) : void
-      +ListAsync() : Task<IEnumerable<TEntity>>
+      +ListAsync(CancellationToken) : Task<IEnumerable<TEntity>>
     }
+
     class UnitOfWork <<repository>> {
-      +CompleteAsync() : Task
-    }
-  }
-
-  package "Infrastructure.Interfaces.ASP.Configuration" {
-    class KebabCaseRouteNamingConvention <<convention>> {
-      +Apply(ControllerModel) : void
-    }
-
-    package "Extensions" {
-      class StringExtensions <<extension>> {
-        +ToKebabCase(string) : string
-      }
+      +CompleteAsync(CancellationToken) : Task
     }
   }
 }
@@ -170,6 +201,7 @@ FavoriteSourcesController --> IFavoriteSourceCommandService : uses
 FavoriteSourcesController --> IFavoriteSourceQueryService : uses
 FavoriteSourcesController --> FavoriteSourceResourceFromEntityAssembler : uses
 FavoriteSourcesController --> CreateFavoriteSourceCommandFromResourceAssembler : uses
+FavoriteSourcesController --> ActionResultFromCreateFavoriteSourceResultAssembler : uses
 
 FavoriteSourceCommandService ..|> IFavoriteSourceCommandService : implements
 FavoriteSourceQueryService ..|> IFavoriteSourceQueryService : implements
@@ -181,30 +213,52 @@ FavoriteSourceQueryService --> IFavoriteSourceRepository : uses
 IFavoriteSourceRepository ..|> IBaseRepository : extends
 FavoriteSourceRepository ..|> IFavoriteSourceRepository : implements
 FavoriteSourceRepository --|> BaseRepository : extends
-
 BaseRepository ..|> IBaseRepository : implements
 UnitOfWork ..|> IUnitOfWork : implements
 
-IFavoriteSourceRepository --> FavoriteSource : manages
+CreateFavoriteSourceCommand --> NewsApiKey : contains
+CreateFavoriteSourceCommand --> SourceId : contains
+GetAllFavoriteSourcesByNewsApiKeyQuery --> NewsApiKey : contains
+GetFavoriteSourceByNewsApiKeyAndSourceIdQuery --> NewsApiKey : contains
+GetFavoriteSourceByNewsApiKeyAndSourceIdQuery --> SourceId : contains
+FavoriteSource --> NewsApiKey : owns
+FavoriteSource --> SourceId : owns
+
+ActionResultFromCreateFavoriteSourceResultAssembler ..> ResultT : maps
+ActionResultFromCreateFavoriteSourceResultAssembler ..> CreateFavoriteSourceError : branches
+ActionResultFromCreateFavoriteSourceResultAssembler ..> FavoriteSource : reads
+ActionResultFromCreateFavoriteSourceResultAssembler ..> FavoriteSourceResource : produces
+ActionResultFromCreateFavoriteSourceResultAssembler ..> SharedResource : localizes
+ActionResultFromCreateFavoriteSourceResultAssembler ..> ControllerBase : uses
+
 FavoriteSourceResourceFromEntityAssembler ..> FavoriteSource : reads
 FavoriteSourceResourceFromEntityAssembler --> FavoriteSourceResource : produces
 CreateFavoriteSourceCommandFromResourceAssembler ..> CreateFavoriteSourceResource : reads
 CreateFavoriteSourceCommandFromResourceAssembler --> CreateFavoriteSourceCommand : produces
-CreateFavoriteSourceCommand --> FavoriteSource : constructs
 
 AppDbContext --> FavoriteSource : maps
-AppDbContext ..> ModelBuilderExtensions : uses
-KebabCaseRouteNamingConvention ..> Shared.Infrastructure.Interfaces.ASP.Configuration.Extensions.StringExtensions : uses
+AppDbContext ..> AuditableEntityInterceptor : uses
+AppDbContext ..> IAuditableEntity : timestamps
 
-note right of AppDbContext
-  Enforces unique pair for FavoriteSource:
+note right of FavoriteSource
+  Persistence tracks:
+  - CreatedAt
+  - UpdatedAt
+  
+  Aggregate uniqueness:
   (NewsApiKey, SourceId)
 end note
 
 note right of FavoriteSourcesController
-  Create flow duplicate handling:
-  - Pre-check duplicate in command service -> 409
-  - DB duplicate-key violation caught in controller -> 409
+  Create flow:
+  - command service returns Result
+  - assembler maps Result to HTTP response
+end note
+
+note right of AppDbContext
+  EF Core mappings:
+  - NewsApiKey / SourceId value conversions
+  - unique composite index on (news_api_key, source_id)
 end note
 
 @enduml
