@@ -1,12 +1,14 @@
 using System.Net.Mime;
+using CatchUpPlatform.API.News.Domain.Model.Aggregates;
+using CatchUpPlatform.API.News.Domain.Model.Errors;
 using CatchUpPlatform.API.News.Domain.Model.Queries;
 using CatchUpPlatform.API.News.Domain.Model.ValueObjects;
 using CatchUpPlatform.API.News.Domain.Services;
 using CatchUpPlatform.API.News.Interfaces.REST.Resources;
 using CatchUpPlatform.API.News.Interfaces.REST.Transform;
 using CatchUpPlatform.API.Resources;
+using CatchUpPlatform.API.Shared.Application.Patterns;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -30,26 +32,6 @@ public class FavoriteSourcesController(
     ILogger<FavoriteSourcesController> logger)
     : ControllerBase
 {
-    private const int MySqlDuplicateEntryErrorCode = 1062;
-
-    private static bool IsDuplicateKeyViolation(DbUpdateException exception)
-    {
-        for (Exception? current = exception; current is not null; current = current.InnerException)
-        {
-            if (!string.Equals(current.GetType().Name, "MySqlException", StringComparison.Ordinal)) continue;
-
-            var numberProperty = current.GetType().GetProperty("Number");
-            if (numberProperty?.PropertyType == typeof(int) &&
-                numberProperty.GetValue(current) is int errorCode &&
-                errorCode == MySqlDuplicateEntryErrorCode)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     /// <summary>
     ///     Creates a favorite source.
     /// </summary>
@@ -71,15 +53,41 @@ public class FavoriteSourcesController(
     public async Task<ActionResult> CreateFavoriteSource([FromBody] CreateFavoriteSourceResource resource,
         CancellationToken cancellationToken)
     {
-
         try
         {
             var createFavoriteSourceCommand =
                 CreateFavoriteSourceCommandFromResourceAssembler.ToCommandFromResource(resource);
             var result = await favoriteSourceCommandService.Handle(createFavoriteSourceCommand, cancellationToken);
-            if (result is null) return Conflict(localizer["NewsFavoriteSourceDuplicated"].Value);
-            return CreatedAtAction(nameof(GetFavoriteSourceById), new { id = result.Id },
-                FavoriteSourceResourceFromEntityAssembler.ToResourceFromEntity(result));
+
+            return result switch
+            {
+                Result<FavoriteSource, CreateFavoriteSourceError>.Success success =>
+                    CreatedAtAction(nameof(GetFavoriteSourceById), new { id = success.Value.Id },
+                        FavoriteSourceResourceFromEntityAssembler.ToResourceFromEntity(success.Value)),
+
+                Result<FavoriteSource, CreateFavoriteSourceError>.Failure failure =>
+                    failure.Error switch
+                    {
+                        CreateFavoriteSourceError.DuplicateFavoriteSource =>
+                            Conflict(localizer["NewsFavoriteSourceDuplicated"].Value),
+
+                        CreateFavoriteSourceError.UnexpectedError =>
+                            Problem(
+                                title: localizer["UnexpectedServerError"].Value,
+                                detail: localizer["UnexpectedErrorCreatingFavoriteSource"].Value,
+                                statusCode: 500),
+
+                        _ => Problem(
+                            title: localizer["UnexpectedServerError"].Value,
+                            detail: localizer["UnexpectedErrorProcessingRequest"].Value,
+                            statusCode: 500)
+                    },
+
+                _ => Problem(
+                    title: localizer["UnexpectedServerError"].Value,
+                    detail: localizer["UnexpectedErrorProcessingRequest"].Value,
+                    statusCode: 500)
+            };
         }
         catch (ArgumentException ex)
         {
@@ -88,14 +96,6 @@ public class FavoriteSourcesController(
                 resource.NewsApiKey,
                 resource.SourceId);
             return BadRequest(localizer["InvalidFavoriteSourceRequest"].Value);
-        }
-        catch (DbUpdateException ex) when (IsDuplicateKeyViolation(ex))
-        {
-            logger.LogWarning(ex,
-                "Duplicate-key constraint violation while creating favorite source for NewsApiKey {NewsApiKey} and SourceId {SourceId}",
-                resource.NewsApiKey,
-                resource.SourceId);
-            return Conflict(localizer["NewsFavoriteSourceDuplicated"].Value);
         }
         catch (Exception ex)
         {

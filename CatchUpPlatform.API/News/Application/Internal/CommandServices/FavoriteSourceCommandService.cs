@@ -1,8 +1,10 @@
 using CatchUpPlatform.API.News.Domain.Model.Aggregates;
 using CatchUpPlatform.API.News.Domain.Model.Commands;
+using CatchUpPlatform.API.News.Domain.Model.Errors;
 using CatchUpPlatform.API.News.Domain.Repositories;
 using CatchUpPlatform.API.News.Domain.Services;
 using CatchUpPlatform.API.Shared.Domain.Repositories;
+using CatchUpPlatform.API.Shared.Application.Patterns;
 using Microsoft.EntityFrameworkCore;
 
 namespace CatchUpPlatform.API.News.Application.Internal.CommandServices;
@@ -30,26 +32,46 @@ public class FavoriteSourceCommandService(
     : IFavoriteSourceCommandService
 {
     /// <inheritdoc />
-    public async Task<FavoriteSource?> Handle(CreateFavoriteSourceCommand command,
+    public async Task<Result<FavoriteSource, CreateFavoriteSourceError>> Handle(CreateFavoriteSourceCommand command,
         CancellationToken cancellationToken = default)
     {
-        var favoriteSource =
+        var existingSource =
             await favoriteSourceRepository.FindByNewsApiKeyAndSourceIdAsync(command.NewsApiKey, command.SourceId,
                 cancellationToken);
-        if (favoriteSource != null)
+        if (existingSource != null)
         {
             logger.LogWarning(
                 "Duplicate favorite source rejected for NewsApiKey {NewsApiKey} and SourceId {SourceId}",
                 command.NewsApiKey,
                 command.SourceId);
-            return null;
+            return new Result<FavoriteSource, CreateFavoriteSourceError>.Failure(
+                CreateFavoriteSourceError.DuplicateFavoriteSource);
         }
 
-        favoriteSource = new FavoriteSource(command);
         try
         {
+            var favoriteSource = new FavoriteSource(command);
             await favoriteSourceRepository.AddAsync(favoriteSource, cancellationToken);
             await unitOfWork.CompleteAsync(cancellationToken);
+            return new Result<FavoriteSource, CreateFavoriteSourceError>.Success(favoriteSource);
+        }
+        catch (ArgumentException ex)
+        {
+            logger.LogWarning(ex,
+                "Invalid arguments while creating favorite source for NewsApiKey {NewsApiKey} and SourceId {SourceId}",
+                command.NewsApiKey,
+                command.SourceId);
+            return new Result<FavoriteSource, CreateFavoriteSourceError>.Failure(
+                CreateFavoriteSourceError.UnexpectedError);
+        }
+        catch (DbUpdateException ex) when (IsDuplicateKeyViolation(ex))
+        {
+            logger.LogWarning(ex,
+                "Duplicate key violation creating favorite source for NewsApiKey {NewsApiKey} and SourceId {SourceId}",
+                command.NewsApiKey,
+                command.SourceId);
+            return new Result<FavoriteSource, CreateFavoriteSourceError>.Failure(
+                CreateFavoriteSourceError.DuplicateFavoriteSource);
         }
         catch (DbUpdateException ex)
         {
@@ -57,7 +79,8 @@ public class FavoriteSourceCommandService(
                 "Database update failed creating favorite source for NewsApiKey {NewsApiKey} and SourceId {SourceId}",
                 command.NewsApiKey,
                 command.SourceId);
-            throw;
+            return new Result<FavoriteSource, CreateFavoriteSourceError>.Failure(
+                CreateFavoriteSourceError.UnexpectedError);
         }
         catch (Exception ex)
         {
@@ -65,9 +88,27 @@ public class FavoriteSourceCommandService(
                 "Unexpected error creating favorite source for NewsApiKey {NewsApiKey} and SourceId {SourceId}",
                 command.NewsApiKey,
                 command.SourceId);
-            throw;
+            return new Result<FavoriteSource, CreateFavoriteSourceError>.Failure(
+                CreateFavoriteSourceError.UnexpectedError);
         }
+    }
 
-        return favoriteSource;
+    /// <summary>
+    /// Determines whether a DbUpdateException represents a duplicate key constraint violation.
+    /// </summary>
+    /// <param name="exception">The exception to inspect.</param>
+    /// <returns>True if the exception is due to a MySQL duplicate key error (code 1062), false otherwise.</returns>
+    private static bool IsDuplicateKeyViolation(DbUpdateException exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (!string.Equals(current.GetType().Name, "MySqlException", StringComparison.Ordinal)) continue;
+            var numberProperty = current.GetType().GetProperty("Number");
+            if (numberProperty?.PropertyType == typeof(int) &&
+                numberProperty.GetValue(current) is int errorCode &&
+                errorCode == 1062)
+                return true;
+        }
+        return false;
     }
 }

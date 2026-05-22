@@ -1,5 +1,7 @@
 using CatchUpPlatform.API.News.Domain.Model.Aggregates;
 using CatchUpPlatform.API.News.Domain.Model.Commands;
+using CatchUpPlatform.API.News.Domain.Model.Errors;
+using CatchUpPlatform.API.Shared.Application.Patterns;
 
 namespace CatchUpPlatform.API.News.Domain.Services;
 
@@ -23,8 +25,7 @@ public interface IFavoriteSourceCommandService
     /// <param name="command">CreateFavoriteSourceCommand command</param>
     /// <param name="cancellationToken">Token to cancel the asynchronous operation.</param>
     /// <returns>
-    ///     The created FavoriteSource object, or null if a duplicate pair (NewsApiKey, SourceId) is detected.
+    ///     A Result containing the created FavoriteSource on success, or the error reason on failure.
     /// </returns>
-    /// <exception cref="Exception">Thrown if persistence fails while handling the command.</exception>
-    Task<FavoriteSource?> Handle(CreateFavoriteSourceCommand command, CancellationToken cancellationToken = default);
+    Task<Result<FavoriteSource, CreateFavoriteSourceError>> Handle(CreateFavoriteSourceCommand command, CancellationToken cancellationToken = default);
 }
