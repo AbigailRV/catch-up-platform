@@ -14,14 +14,14 @@ public interface IBaseRepository<TEntity>
     /// </summary>
     /// <param name="entity">Entity object to add</param>
     /// <returns>A task representing the asynchronous add operation.</returns>
-    Task AddAsync(TEntity entity);
+    Task AddAsync(TEntity entity, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Find entity by id
     /// </summary>
     /// <param name="id">The Entity ID to Find</param>
     /// <returns>A task representing the asynchronous read operation, containing the entity if found, or null otherwise.</returns>
-    Task<TEntity?> FindByIdAsync(int id);
+    Task<TEntity?> FindByIdAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Update entity
@@ -39,5 +39,5 @@ public interface IBaseRepository<TEntity>
     ///     Get All entities
     /// </summary>
     /// <returns>An Enumerable containing all entity objects</returns>
-    Task<IEnumerable<TEntity>> ListAsync();
+    Task<IEnumerable<TEntity>> ListAsync(CancellationToken cancellationToken = default);
 }
