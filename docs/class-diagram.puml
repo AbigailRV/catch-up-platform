@@ -8,7 +8,7 @@ package "News" {
   package "Interfaces.REST" {
     class FavoriteSourcesController {
       +CreateFavoriteSource(CreateFavoriteSourceResource) : Task<ActionResult>
-      +GetFavoriteSourceFromQuery(string, string) : Task<ActionResult>
+      +GetFavoriteSourceFromQuery(string, string?) : Task<ActionResult>
       +GetFavoriteSourceById(int) : Task<ActionResult>
     }
 
