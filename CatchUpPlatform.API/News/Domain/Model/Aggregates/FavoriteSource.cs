@@ -30,16 +30,19 @@ public partial class FavoriteSource
     ///     It initializes the aggregate with the required NewsApiKey and SourceId.
     /// </remarks>
     /// <param name="command">The CreateFavoriteSourceCommand command</param>
+    /// <exception cref="ArgumentNullException">Thrown when command is null.</exception>
     public FavoriteSource(CreateFavoriteSourceCommand command)
     {
-        NewsApiKey = command.NewsApiKey;
-        SourceId = command.SourceId;
+        ArgumentNullException.ThrowIfNull(command);
+
+        NewsApiKey = command.NewsApiKey.Value;
+        SourceId = command.SourceId.Value;
     }
 
     /// <summary>
     ///     Gets the server-generated identifier for this favorite source.
     /// </summary>
-    public int Id { get; }
+    public int Id { get; private set; }
     
     /// <summary>
     ///     Gets the News API key associated with this favorite source.
