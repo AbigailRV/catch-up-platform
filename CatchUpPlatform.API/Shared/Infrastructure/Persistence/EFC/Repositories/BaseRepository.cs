@@ -5,21 +5,18 @@ using Microsoft.EntityFrameworkCore;
 namespace CatchUpPlatform.API.Shared.Infrastructure.Persistence.EFC.Repositories;
 
 /// <summary>
-///     Base repository for all repositories
+///     Generic base repository providing CRUD operations for all entity types.
 /// </summary>
 /// <remarks>
-///     This class implements the basic CRUD operations for all repositories.
-///     It requires the entity type to be passed as a generic parameter.
-///     It also requires the context to be passed in the constructor.
+///     This generic repository implements the IBaseRepository contract and provides
+///     common CRUD operations against an EF Core DbContext. Derived repositories
+///     can extend this class to add entity-specific query methods.
 /// </remarks>
-public class BaseRepository<TEntity> : IBaseRepository<TEntity> where TEntity : class
+/// <typeparam name="TEntity">The entity type that this repository manages.</typeparam>
+/// <param name="context">The EF Core database context.</param>
+public class BaseRepository<TEntity>(AppDbContext context) : IBaseRepository<TEntity> where TEntity : class
 {
-    protected readonly AppDbContext Context;
-
-    protected BaseRepository(AppDbContext context)
-    {
-        Context = context;
-    }
+    protected readonly AppDbContext Context = context;
 
     /// <inheritdoc />
     public async Task AddAsync(TEntity entity)
