@@ -74,8 +74,10 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler();
 
-// Swagger UI is enabled in all environments for API documentation.
-// For production, consider restricting this to development-only or authenticated endpoints.
+// Swagger UI is intentionally enabled in all environments (including production)
+// to support learning, onboarding, and exploratory testing of this API.
+// In security-sensitive deployments this should be restricted to authenticated users
+// or development/staging environments only.
 app.UseSwagger();
 app.UseSwaggerUI();
 
