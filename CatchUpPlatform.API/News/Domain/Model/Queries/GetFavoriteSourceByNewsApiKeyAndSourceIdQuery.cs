@@ -1,3 +1,5 @@
+using CatchUpPlatform.API.News.Domain.Model.ValueObjects;
+
 namespace CatchUpPlatform.API.News.Domain.Model.Queries;
 
 /// <summary>
@@ -5,4 +7,4 @@ namespace CatchUpPlatform.API.News.Domain.Model.Queries;
 /// </summary>
 /// <param name="NewsApiKey">The NewsApiKey to search</param>
 /// <param name="SourceId">The Source ID to search</param>
-public record GetFavoriteSourceByNewsApiKeyAndSourceIdQuery(string NewsApiKey, string SourceId);
+public record GetFavoriteSourceByNewsApiKeyAndSourceIdQuery(NewsApiKey NewsApiKey, SourceId SourceId);
