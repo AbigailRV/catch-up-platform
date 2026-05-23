@@ -4,6 +4,29 @@
 
 Catch-Up Platform is a small ASP.NET Core service that provides an API to manage users' favorite news sources. The project demonstrates a clean package structure separated into bounded contexts (news and shared) and follows simple command/query service patterns with Entity Framework Core persistence.
 
+## Domain-Driven Design approach
+
+The codebase applies a lightweight Domain-Driven Design style to keep the favorite-sources feature easy to evolve:
+
+- **Bounded contexts**
+  - `News`: owns the favorite-source use cases, aggregate, commands, queries, and API contracts.
+  - `Shared`: owns cross-cutting abstractions used by multiple contexts, such as repository contracts, unit of work, auditing, and reusable application patterns.
+- **Domain layer**
+  - Contains the core business concepts: `FavoriteSource`, `NewsApiKey`, `SourceId`, and command/query records.
+  - Keeps business rules close to the model, including uniqueness expectations and value-object validation.
+- **Application layer**
+  - Coordinates use cases through command/query services.
+  - Returns explicit outcomes with a shared `Result<TValue, TError>` pattern for command handling.
+  - Defines application-specific error types such as `CreateFavoriteSourceError`.
+- **Interfaces layer**
+  - Exposes the REST API through controllers and Swagger annotations.
+  - Uses assemblers to translate request resources into commands and application results into HTTP `ActionResult` responses.
+- **Infrastructure layer**
+  - Persists aggregates with Entity Framework Core and MySQL.
+  - Maps value objects to database columns, applies migrations on startup, and manages audit timestamps through a save-changes interceptor.
+
+This structure keeps HTTP concerns, persistence concerns, and business rules separated while still allowing the API to stay simple to consume.
+
 ## Features
 
 - API base route: `/api/v1/favorite-sources` (kebab-case route naming convention)
@@ -12,7 +35,7 @@ Catch-Up Platform is a small ASP.NET Core service that provides an API to manage
 - Retrieve a favorite source by `newsApiKey` + `sourceId`
 - Create (persist) a new favorite source
 - Duplicate detection enforced at application and database level (returns `409 Conflict` for known duplicate-pair violations)
-- Validation responses with model-state payloads (`400 Bad Request`)
+- Localized validation responses (`400 Bad Request`)
 - Unexpected create errors returned as `ProblemDetails` (`500 Internal Server Error`)
 - Entity Framework naming strategy for `snake_case` identifiers and plural table names
 - Structured logging for diagnostics and observability
@@ -72,12 +95,12 @@ dotnet run
 
 ### Database initialization
 
-The application automatically initializes the database schema on first run via `EnsureCreated()`.
+The application automatically applies pending EF Core migrations on startup via `Database.Migrate()`.
 
-- **Development**: Creates schema in the configured MySQL database.
+- **Development**: Applies the current schema to the configured MySQL database.
 - **First-time setup**: Ensure MySQL is running and the connection string points to an existing (empty or non-empty) database.
 - **Constraints**: A unique composite index is enforced on `(NewsApiKey, SourceId)` to prevent duplicate favorites.
-- **Schema changes**: For schema updates, manually drop and recreate the database, or use EF Core migrations (not currently configured).
+- **Schema changes**: Add and commit EF Core migrations when the data model changes.
 
 ### 4) Open Swagger UI
 
@@ -101,7 +124,7 @@ Set `ASPNETCORE_ENVIRONMENT=Production` before running with production settings.
 
 The API returns standardized error responses:
 
-- **400 Bad Request**: Request validation failed (includes model-state details).
+- **400 Bad Request**: Request validation failed and returns a localized error message.
 - **404 Not Found**: Resource not found.
 - **409 Conflict**: Duplicate `newsApiKey` + `sourceId` pair for known duplicate-pair violations (detected before or during persistence).
 - **500 Internal Server Error**: Unexpected server error (RFC7807 `ProblemDetails` format).
